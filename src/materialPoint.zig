@@ -32,6 +32,7 @@ pub const MP_2d_Classic = struct {
 pub const Shape_2d_Classic = struct {
     alloc: std.mem.Allocator,
     material_points: std.MultiArrayList(MP_2d_Classic),
+
     mp_slice: std.MultiArrayList(MP_2d_Classic).Slice,
     len: u64,
     mat: m.Elastic_Material,
