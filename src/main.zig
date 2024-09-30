@@ -6,6 +6,7 @@ const mp = @import("materialPoint.zig");
 const mat = @import("materials.zig");
 const s = @import("solver.zig");
 const s2 = @import("solver2.zig");
+const ThreadPool = @import("ThreadPool.zig");
 
 ///usr/lib/linux-tools/5.15.0-119-generic/perf
 const time = std.time;
@@ -127,6 +128,60 @@ fn test_1(out_dir: std.fs.Dir, alloc: std.mem.Allocator) !void {
     defer t_p.deinit();
 
     const y = try s2.run(&env1, &t_p, .cubic_bspline_basis);
+
+    std.log.info("Hä {}\n ", .{y});
+}
+
+fn test_2(out_dir: std.fs.Dir, alloc: std.mem.Allocator) !void {
+    var g1 = try grid.Grid_2d.init(2, 2, 300, 300, alloc);
+    defer g1.deinit();
+
+    const mat1 = mat.Elastic_Material.init(1000, 0.1, 1000);
+    const mat2 = mat.Elastic_Material.init(1000, 0.1, 1000);
+
+    const offset = g1.lenght_cell[0] / 3;
+
+    var shp1 = try mp.Shape_2d_Classic.createCircle(.{ 0.8, 0.8 }, 0.2, offset, mat1, .{ 0.1, 0.1 }, alloc);
+    defer shp1.deinit();
+
+    var shp2 = try mp.Shape_2d_Classic.createCircle(.{ 1.2, 1.2 }, 0.2, offset, mat2, .{ -0.1, -0.1 }, alloc);
+    defer shp2.deinit();
+
+    var l = std.ArrayList(mp.Shape_2d_Classic).init(alloc);
+    defer l.deinit();
+
+    try l.append(shp1);
+    try l.append(shp2);
+
+    var env1 = env{
+        .alloc = alloc,
+        .grid = g1,
+        .shapes = l,
+        .timeEnd = 4,
+        .timeStep = 0.0001,
+        .out_Folder = out_dir,
+        .ext_acc = .{ 0, 0 },
+    };
+
+    var thread_safe_alloc: std.heap.ThreadSafeAllocator = .{
+        .child_allocator = alloc,
+    };
+    const ts_alloc = thread_safe_alloc.allocator();
+
+    // var solv = try s.Solver_2d_2.init(env1, alloc, .cubic_bspline_basis);
+    // defer {
+    //     solv.deinit();
+    // }
+
+    // //try solve_2d_Classic_3(env1, .cubic_bspline_basis);
+
+    // const y = try solv.run();
+
+    var tp = ThreadPool.init(.{ .max_threads = 24 });
+    defer tp.deinit();
+    defer tp.shutdown();
+
+    const y = try s2.run(&env1, &tp, .cubic_bspline_basis, ts_alloc);
 
     std.log.info("Hä {}\n ", .{y});
 }
