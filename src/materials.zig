@@ -7,6 +7,20 @@ const Mat22 = b.Mat22;
 
 const Ident: Mat22 = b.initMat22(1, 0, 0, 1);
 
+pub const Material = union(enum) {
+    elastic_material: Elastic_Material,
+
+    const Mat_Arg = struct {
+        strain: ?Mat22 = null,
+    };
+
+    pub fn update_stress(Self: *Material, args: Mat_Arg) void {
+        switch (Self) {
+            inline else => |case| return case.update_stress(args.strain),
+        }
+    }
+};
+
 const Rigid_Material = struct {
     density: f64,
 };

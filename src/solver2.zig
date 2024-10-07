@@ -21,9 +21,10 @@ pub fn run(e: *m.env, t_p: *Thread.Pool, comptime base: b.basis) !u64 {
 
     var wG = Thread.WaitGroup{};
     wG.reset();
+    const enabled = false;
 
     while (@as(f64, @floatFromInt(t)) <= e.timeEnd / e.timeStep) : (t += 1) {
-        if (t % 250 == 0) {
+        if (t % 250 == 0 and enabled == true) {
             std.debug.print("i:{d}\n", .{it});
             const fP = try std.fmt.allocPrint(e.alloc, "{d}.csv", .{it});
             defer e.alloc.free(fP);

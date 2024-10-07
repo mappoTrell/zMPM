@@ -23,8 +23,11 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
     var wG = Thread.WaitGroup{};
     wG.reset();
 
+    const mult: u8 = 1;
+    const enabled = true;
+
     while (@as(f64, @floatFromInt(t)) <= e.timeEnd / e.timeStep) : (t += 1) {
-        if (t % 250 == 0) {
+        if (t % 250 == 0 and enabled == true) {
             std.debug.print("i:{d}\n", .{it});
             const fP = try std.fmt.allocPrint(e.alloc, "{d}.csv", .{it});
             defer e.alloc.free(fP);
@@ -50,6 +53,7 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
         var i: u64 = 0;
         var incr: u64 = 0;
         incr = e.grid.gp.len / c_count;
+        incr = incr / mult;
         while (i < e.grid.gp.len) : (i += incr) {
             const end = if (i + incr <= e.grid.gp.len) i + incr else e.grid.gp.len;
             tp.schedule(ThreadPool.Batch.from(try ThreadPool.createTask(resetGrid, .{ e, i, end }, &wG, alloc)));
@@ -58,10 +62,8 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
             //thr.detach();
         }
 
-        while (!wG.isDone()) {
-            std.atomic.spinLoopHint();
-        }
-
+        // while (!wG.isDone()) {}
+        wG.wait();
         // while (!wG.isDone()) {
         //     std.atomic.spinLoopHint();
         // }
@@ -73,15 +75,16 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
         for (e.shapes.items, 0..) |shape, shpN| {
             i = 0;
             incr = shape.len / c_count;
+            incr = incr / mult;
             while (i < shape.len) : (i += incr) {
                 const end = if (i + incr <= shape.len) (i + incr) else shape.len;
                 tp.schedule(ThreadPool.Batch.from(try ThreadPool.createTask(pointsToGrid, .{ e, shpN, base, i, end }, &wG, alloc)));
             }
         }
-        while (!wG.isDone()) {
-            std.atomic.spinLoopHint();
-        }
+        // while (!wG.isDone()) {
 
+        // }
+        wG.wait();
         // for (e.shapes.items, 0..) |shape, shpN| {
         //     pointsToGrid(Self, &wG, shpN, Self.base, 0, shape.len);
         //
@@ -92,13 +95,15 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
         // //update Grid
         i = 0;
         incr = e.grid.gp.len / c_count;
+        incr = incr / mult;
         while (i < e.grid.gp.len) : (i += incr) {
             const end = if (i + incr <= e.grid.gp.len) i + incr else e.grid.gp.len;
             tp.schedule(ThreadPool.Batch.from(try ThreadPool.createTask(updateGrid, .{ e, i, end }, &wG, alloc)));
         }
-        while (!wG.isDone()) {
-            std.atomic.spinLoopHint();
-        }
+        // while (!wG.isDone()) {
+
+        // }
+        wG.wait();
         wG.reset();
 
         //updateGrid(Self, &wG, 0, e.grid.gp.len);
@@ -107,14 +112,16 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
         for (e.shapes.items, 0..) |shape, shpN| {
             i = 0;
             incr = shape.len / c_count;
+            incr = incr / mult;
             while (i < shape.len) : (i += incr) {
                 const end = if (i + incr <= shape.len) i + incr else shape.len;
                 tp.schedule(ThreadPool.Batch.from(try ThreadPool.createTask(gridToPoints, .{ e, shpN, base, i, end }, &wG, alloc)));
             }
         }
-        while (!wG.isDone()) {
-            std.atomic.spinLoopHint();
-        }
+        // while (!wG.isDone()) {
+
+        // }
+        wG.wait();
         wG.reset();
 
         // for (e.shapes.items, 0..) |shape, shpN| {
@@ -211,13 +218,17 @@ pub fn pointsToGrid(e: *m.env, shpN: usize, comptime basis: b.basis, start: u64,
         bas.getShapeValueGradient(pos, e.grid);
 
         for (bas.nP, bas.func, bas.ders) |gp_I, fV, der| {
+            var i: u64 = 1;
             while (gp.items(.changes)[gp_I].cmpxchgWeak(false, true, .acquire, .monotonic) orelse false) {
+                std.time.sleep(i);
                 std.atomic.spinLoopHint();
+                i += 1;
             }
 
             gp.items(.mass)[gp_I] += mass * fV;
             gp.items(.mom0)[gp_I] += b.scalar2(vel, fV * mass);
-            gp.items(.force)[gp_I] += b.scalar2(.{
+            //gp.items(.mom0)[gp_I] += vel.scalar2(fV * mass);
+            gp.items(.force)[gp_I] += b.scalar2(Vec2{
                 stress[0][0] * der[0] + stress[0][1] * der[1],
                 stress[1][0] * der[0] + stress[1][1] * der[1],
             }, -vol) + b.scalar2(e.ext_acc, mass * fV);

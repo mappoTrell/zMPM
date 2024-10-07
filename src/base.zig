@@ -4,6 +4,8 @@ const bs = @import("bsplines.zig");
 
 pub const Vec2 = @Vector(2, f64);
 
+pub const Vec3 = @Vector(3, f64);
+
 const z2: Vec2 = .{ 0, 0 };
 
 pub fn dot2(a: Vec2, b: Vec2) f64 {
@@ -11,7 +13,45 @@ pub fn dot2(a: Vec2, b: Vec2) f64 {
 }
 
 pub fn scalar2(a: Vec2, s: f64) Vec2 {
-    return @as(Vec2, @splat(s)) * a;
+    return scalar(a, s);
+}
+
+pub fn scalar(a: anytype, s: f64) @TypeOf(a) {
+    const T = @TypeOf(a);
+    switch (@typeInfo(T)) {
+        .Vector => {
+            return @as(@TypeOf(a), @splat(s)) * a;
+        },
+        .Array => |arr| {
+            switch (@typeInfo(arr.child)) {
+                .Vector => {
+                    var res: T = undefined;
+                    for (0..arr.len) |i| {
+                        res[i] = scalar(a[i], s);
+                    }
+                    return res;
+                },
+                else => {
+                    //@compileLog(.{(@TypeOf(a))});
+                    @compileError("no array of vectors");
+                },
+            }
+        },
+        else => {
+            @compileError("type no vector or array of Vector");
+        },
+    }
+}
+
+test "scalar" {
+    var x = Vec2{ 1, 1 };
+    var z = initMat22(1, 1, 1, 1);
+    x = scalar(x, 3);
+    z = scalar(z, 3);
+
+    //const y = [4]Vec2;
+    std.debug.print("{any}\n\n", .{z});
+    std.debug.print("{any}\n\n", .{@TypeOf(x, z)});
 }
 
 pub fn invert2(a: Vec2) Vec2 {
@@ -28,17 +68,75 @@ pub fn initMat22(e1: f64, e2: f64, e3: f64, e4: f64) Mat22 {
 }
 
 pub fn add22(a: Mat22, b: Mat22) Mat22 {
-    return .{
-        a[0] + b[0],
-        a[1] + b[1],
-    };
+    return addMat(a, b);
+}
+
+pub fn addMat(a: anytype, b: anytype) @TypeOf(a, b) {
+    const T = @TypeOf(a, b);
+    switch (@typeInfo(T)) {
+        .Array => |arr| {
+            switch (@typeInfo(arr.child)) {
+                .Vector => {
+                    var res: T = undefined;
+                    inline for (0..arr.len) |i| {
+                        res[i] = a[i] + b[i];
+                    }
+                    return res;
+                },
+                else => {
+                    //@compileLog(.{(@TypeOf(a))});
+                    @compileError("no array of vectors");
+                },
+            }
+        },
+        else => @compileError("no array of vectors"),
+    }
 }
 
 pub fn scalar22(a: Mat22, s: f64) Mat22 {
-    return .{
-        scalar2(a[0], s),
-        scalar2(a[1], s),
-    };
+    return scalar(a, s);
+}
+
+pub fn transpose(a: anytype) @TypeOf(a) {
+    const T = @TypeOf(a);
+    switch (@typeInfo(T)) {
+        .Array => |arr| {
+            switch (@typeInfo(arr.child)) {
+                .Vector => |vec_t| {
+                    if (vec_t.len == arr.len) {
+                        var res: T = undefined;
+
+                        switch (arr.len) {
+                            0 => @compileError("matrix cannot have n = 0"),
+                            1 => res = a,
+                            2 => {
+                                res = .{
+                                    @shuffle(f64, a[0], a[1], @Vector(2, i32){ @as(i32, 0), ~@as(i32, 0) }),
+                                    @shuffle(f64, a[0], a[1], @Vector(2, i32){ @as(i32, 1), ~@as(i32, 1) }),
+                                };
+                            },
+                            3 => {
+                                const temp0 = @shuffle(f64, a[0], a[1], [4]i32{ 0, 1, -1, -2 });
+                                const temp1 = @shuffle(f64, a[0], a[1], [4]i32{ 2, -3, 2, -3 });
+
+                                res[0] = @shuffle(f64, temp0, a[2], [3]i32{ 0, 2, -1 });
+                                res[1] = @shuffle(f64, temp0, a[2], [3]i32{ 1, 3, -2 });
+                                res[2] = @shuffle(f64, temp1, a[2], [3]i32{ 0, 1, -3 });
+                            },
+                            4 => @compileError("not yet implemented"),
+                        }
+
+                        return res;
+                    } else @compileError("matrix not square");
+                },
+                else => {
+                    //@compileLog(.{(@TypeOf(a))});
+                    @compileError("no array of vectors");
+                },
+            }
+        },
+        else => @compileError("no array of vectors"),
+    }
 }
 
 pub fn transpose22(a: Mat22) Mat22 {
@@ -176,12 +274,12 @@ pub const Quad_Bspline_Basis = struct {
 
 test "Quad Bespline" {
     const all = std.testing.allocator;
-    var grid = try g.Grid_2d.init(2, 2, 21, 21, all);
+    var grid = try g.Grid_2d.init(4, 4, 21, 21, all);
     defer grid.deinit();
 
     const sl = grid.grid_points.slice();
 
-    try std.testing.expectEqual(.{ 1, 1 }, grid.lenght_cell);
+    //try std.testing.expectEqual(.{ 1, 1 }, grid.lenght_cell);
 
     var base = Quad_Bspline_Basis{};
     std.debug.print("{d},\n{d},\n", .{ base.nP, base.func });

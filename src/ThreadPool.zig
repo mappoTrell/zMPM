@@ -821,7 +821,7 @@ const Node = struct {
     };
 };
 
-fn createTask(comptime func: anytype, args: anytype, wg: *std.Thread.WaitGroup, alloc: std.mem.Allocator) !*Task {
+pub fn createTask(comptime func: anytype, args: anytype, wg: *std.Thread.WaitGroup, alloc: std.mem.Allocator) !*Task {
     wg.start();
     const Args = @TypeOf(args);
     const Closure = struct {

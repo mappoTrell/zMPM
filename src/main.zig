@@ -6,6 +6,7 @@ const mp = @import("materialPoint.zig");
 const mat = @import("materials.zig");
 const s = @import("solver.zig");
 const s2 = @import("solver2.zig");
+const s3 = @import("solver3.zig");
 const ThreadPool = @import("ThreadPool.zig");
 
 ///usr/lib/linux-tools/5.15.0-119-generic/perf
@@ -60,7 +61,7 @@ pub fn main() !void {
     }
 
     var timer = try Timer.start();
-    try test_1(out_dir, alloc);
+    try test_2(out_dir, alloc);
     var elapsed2: f64 = @floatFromInt(timer.read());
     std.debug.print("ma: {d:.3}ms\n", .{
         elapsed2 / time.ns_per_ms,
@@ -101,7 +102,7 @@ fn test_1(out_dir: std.fs.Dir, alloc: std.mem.Allocator) !void {
         .alloc = alloc,
         .grid = g1,
         .shapes = l,
-        .timeEnd = 4,
+        .timeEnd = 1,
         .timeStep = 0.0001,
         .out_Folder = out_dir,
         .ext_acc = .{ 0, 0 },
@@ -157,7 +158,7 @@ fn test_2(out_dir: std.fs.Dir, alloc: std.mem.Allocator) !void {
         .alloc = alloc,
         .grid = g1,
         .shapes = l,
-        .timeEnd = 4,
+        .timeEnd = 1,
         .timeStep = 0.0001,
         .out_Folder = out_dir,
         .ext_acc = .{ 0, 0 },
@@ -181,7 +182,7 @@ fn test_2(out_dir: std.fs.Dir, alloc: std.mem.Allocator) !void {
     defer tp.deinit();
     defer tp.shutdown();
 
-    const y = try s2.run(&env1, &tp, .cubic_bspline_basis, ts_alloc);
+    const y = try s3.run(&env1, &tp, .cubic_bspline_basis, ts_alloc);
 
     std.log.info("Hä {}\n ", .{y});
 }
