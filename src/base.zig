@@ -8,6 +8,10 @@ pub const Vec3 = @Vector(3, f64);
 
 const z2: Vec2 = .{ 0, 0 };
 
+pub fn Vec(comptime i: u8) type {
+    return @Vector(i, f64);
+}
+
 pub fn dot2(a: Vec2, b: Vec2) f64 {
     return @reduce(.Add, a * b);
 }
@@ -51,7 +55,7 @@ test "scalar" {
 
     //const y = [4]Vec2;
     std.debug.print("{any}\n\n", .{z});
-    std.debug.print("{any}\n\n", .{@TypeOf(x, z)});
+    //std.debug.print("{any}\n\n", .{@TypeOf(x, z)});
 }
 
 pub fn invert2(a: Vec2) Vec2 {
@@ -123,7 +127,7 @@ pub fn transpose(a: anytype) @TypeOf(a) {
                                 res[1] = @shuffle(f64, temp0, a[2], [3]i32{ 1, 3, -2 });
                                 res[2] = @shuffle(f64, temp1, a[2], [3]i32{ 0, 1, -3 });
                             },
-                            4 => @compileError("not yet implemented"),
+                            else => @compileError("not yet implemented"),
                         }
 
                         return res;
@@ -139,6 +143,23 @@ pub fn transpose(a: anytype) @TypeOf(a) {
     }
 }
 
+test "transpose" {
+    const x = initMat22(1, 2, 3, 4);
+    try std.testing.expectEqual(initMat22(1, 3, 2, 4), transpose(x));
+
+    const y = [3]@Vector(3, f64){
+        .{ 1, 2, 3 },
+        .{ 4, 5, 6 },
+        .{ 7, 8, 9 },
+    };
+    const y_t = [3]@Vector(3, f64){
+        .{ 1, 4, 7 },
+        .{ 2, 5, 8 },
+        .{ 3, 6, 9 },
+    };
+    try std.testing.expectEqual(y_t, transpose(y));
+}
+
 pub fn transpose22(a: Mat22) Mat22 {
     return .{
         @shuffle(f64, a[0], a[1], @Vector(2, i32){ @as(i32, 0), ~@as(i32, 0) }),
@@ -148,6 +169,51 @@ pub fn transpose22(a: Mat22) Mat22 {
 
 pub fn det22(a: Mat22) f64 {
     return a[0][0] * a[1][1] - a[0][1] * a[1][0];
+}
+
+pub fn det(a: anytype) f64 {
+    const T = @TypeOf(a);
+    switch (@typeInfo(T)) {
+        .Array => |arr| {
+            switch (@typeInfo(arr.child)) {
+                .Vector => |vec_t| {
+                    if (vec_t.len == arr.len) {
+                        var res: f64 = 0;
+
+                        switch (arr.len) {
+                            0 => @compileError("matrix cannot have n = 0"),
+                            1 => res = a[0],
+                            2 => {
+                                res = a[0][0] * a[1][1] - a[0][1] * a[1][0];
+                            },
+                            3 => {
+                                var sub: [vec_t.len - 1]Vec(vec_t.len - 1) = undefined;
+                                var sub_i: u8 = 0;
+
+                                inline for (0..vec_t.len) |i| {
+                                    inline for (0..vec_t.len) |j| {
+                                        if (i != j) {
+                                            sub[sub_i] = a[j][1..];
+                                            sub_i += 1;
+                                        }
+                                    }
+                                    res += a[i][0] * det(sub);
+                                }
+                            },
+                            else => @compileError("not yet implemented"),
+                        }
+
+                        return res;
+                    } else @compileError("matrix not square");
+                },
+                else => {
+                    //@compileLog(.{(@TypeOf(a))});
+                    @compileError("no array of vectors");
+                },
+            }
+        },
+        else => @compileError("no array of vectors"),
+    }
 }
 
 pub fn getShapeValueGradient_R(cL: Vec2, mp_p: Vec2, gp_p: Vec2) [3]f64 {
@@ -277,22 +343,24 @@ test "Quad Bespline" {
     var grid = try g.Grid_2d.init(4, 4, 21, 21, all);
     defer grid.deinit();
 
+    const my_log = std.log.scoped(.test_quad);
+
     const sl = grid.grid_points.slice();
 
     //try std.testing.expectEqual(.{ 1, 1 }, grid.lenght_cell);
 
     var base = Quad_Bspline_Basis{};
-    std.debug.print("{d},\n{d},\n", .{ base.nP, base.func });
+    my_log.debug("{d},\n{d},\n", .{ base.nP, base.func });
 
     base.getShapeValueGradient(Vec2{ 2.6, 2.4 }, grid);
 
     for (base.nP) |g_p| {
-        std.debug.print("{d}", .{sl.items(.pos)[g_p]});
+        my_log.debug("{d}", .{sl.items(.pos)[g_p]});
     }
 
-    std.debug.print("\n{d},\n{d},\n", .{ base.nP, base.func });
+    std.log.debug("\n{d},\n{d},\n", .{ base.nP, base.func });
     for (base.ders) |der| {
-        std.debug.print("{d}", .{der});
+        my_log.debug("{d}", .{der});
     }
 }
 

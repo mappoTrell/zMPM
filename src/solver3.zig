@@ -20,6 +20,8 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
     const c_count = std.Thread.getCpuCount() catch 5;
     std.debug.print("{}\n", .{c_count});
 
+    const my_log = std.log.scoped(.solver3);
+
     var wG = Thread.WaitGroup{};
     wG.reset();
 
@@ -28,7 +30,7 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
 
     while (@as(f64, @floatFromInt(t)) <= e.timeEnd / e.timeStep) : (t += 1) {
         if (t % 250 == 0 and enabled == true) {
-            std.debug.print("i:{d}\n", .{it});
+            my_log.debug("Frame {d}", .{it});
             const fP = try std.fmt.allocPrint(e.alloc, "{d}.csv", .{it});
             defer e.alloc.free(fP);
             const file = try e.out_Folder.createFile(fP, .{ .read = true });
@@ -57,19 +59,11 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
         while (i < e.grid.gp.len) : (i += incr) {
             const end = if (i + incr <= e.grid.gp.len) i + incr else e.grid.gp.len;
             tp.schedule(ThreadPool.Batch.from(try ThreadPool.createTask(resetGrid, .{ e, i, end }, &wG, alloc)));
-            //const thr = try Thread.spawn(.{}, resetGrid, .{ Self, &wG, i, end });
-            //wG.spawnManager(resetGrid, .{ Self, i, end });
-            //thr.detach();
         }
 
-        // while (!wG.isDone()) {}
         wG.wait();
-        // while (!wG.isDone()) {
-        //     std.atomic.spinLoopHint();
-        // }
-        wG.reset();
 
-        //resetGrid(Self, &wG, 0, e.grid.gp.len);
+        wG.reset();
 
         //points to grid
         for (e.shapes.items, 0..) |shape, shpN| {
@@ -81,14 +75,8 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
                 tp.schedule(ThreadPool.Batch.from(try ThreadPool.createTask(pointsToGrid, .{ e, shpN, base, i, end }, &wG, alloc)));
             }
         }
-        // while (!wG.isDone()) {
 
-        // }
         wG.wait();
-        // for (e.shapes.items, 0..) |shape, shpN| {
-        //     pointsToGrid(Self, &wG, shpN, Self.base, 0, shape.len);
-        //
-        // }
 
         wG.reset();
 
@@ -100,9 +88,7 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
             const end = if (i + incr <= e.grid.gp.len) i + incr else e.grid.gp.len;
             tp.schedule(ThreadPool.Batch.from(try ThreadPool.createTask(updateGrid, .{ e, i, end }, &wG, alloc)));
         }
-        // while (!wG.isDone()) {
 
-        // }
         wG.wait();
         wG.reset();
 
@@ -118,17 +104,9 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
                 tp.schedule(ThreadPool.Batch.from(try ThreadPool.createTask(gridToPoints, .{ e, shpN, base, i, end }, &wG, alloc)));
             }
         }
-        // while (!wG.isDone()) {
 
-        // }
         wG.wait();
         wG.reset();
-
-        // for (e.shapes.items, 0..) |shape, shpN| {
-        //     gridToPoints(Self, &wG, shpN, Self.base, 0, shape.len);
-        //
-        //     // }
-        // }
     }
     std.debug.print("Done\n", .{});
     return 1;
