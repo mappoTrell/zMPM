@@ -13,7 +13,17 @@ pub fn Vec(comptime i: u8) type {
 }
 
 pub fn dot2(a: Vec2, b: Vec2) f64 {
-    return @reduce(.Add, a * b);
+    return dot(a, b);
+}
+
+pub fn dot(a: anytype, b: anytype) f64 {
+    const T = @TypeOf(a, b);
+    switch (@typeInfo(T)) {
+        .Vector => {
+            return @reduce(.Add, a * b);
+        },
+        else => @compileError("no array of vectors"),
+    }
 }
 
 pub fn scalar2(a: Vec2, s: f64) Vec2 {
@@ -30,7 +40,7 @@ pub fn scalar(a: anytype, s: f64) @TypeOf(a) {
             switch (@typeInfo(arr.child)) {
                 .Vector => {
                     var res: T = undefined;
-                    for (0..arr.len) |i| {
+                    inline for (0..arr.len) |i| {
                         res[i] = scalar(a[i], s);
                     }
                     return res;
@@ -54,12 +64,39 @@ test "scalar" {
     z = scalar(z, 3);
 
     //const y = [4]Vec2;
-    std.debug.print("{any}\n\n", .{z});
+    //std.debug.print("{any}\n\n", .{z});
     //std.debug.print("{any}\n\n", .{@TypeOf(x, z)});
 }
 
 pub fn invert2(a: Vec2) Vec2 {
-    return @as(Vec2, @splat(1)) / a;
+    return invert(a);
+}
+
+pub fn invert(a: anytype) @TypeOf(a) {
+    const T = @TypeOf(a);
+    switch (@typeInfo(T)) {
+        .Vector => {
+            return @as(Vec2, @splat(1)) / a;
+        },
+        .Array => |arr| {
+            switch (@typeInfo(arr.child)) {
+                .Vector => {
+                    var res: T = undefined;
+                    inline for (0..arr.len) |i| {
+                        res[i] = invert(a[i]);
+                    }
+                    return res;
+                },
+                else => {
+                    //@compileLog(.{(@TypeOf(a))});
+                    @compileError("no array of vectors");
+                },
+            }
+        },
+        else => {
+            @compileError("type no vector or array of Vector");
+        },
+    }
 }
 
 pub const Mat22 = [2]Vec2;
@@ -95,6 +132,11 @@ pub fn addMat(a: anytype, b: anytype) @TypeOf(a, b) {
         },
         else => @compileError("no array of vectors"),
     }
+}
+
+test "addMat" {
+    const z = initMat22(1, 1, 1, 1);
+    try std.testing.expectEqual(initMat22(2, 2, 2, 2), addMat(z, z));
 }
 
 pub fn scalar22(a: Mat22, s: f64) Mat22 {
@@ -188,16 +230,16 @@ pub fn det(a: anytype) f64 {
                             },
                             3 => {
                                 var sub: [vec_t.len - 1]Vec(vec_t.len - 1) = undefined;
-                                var sub_i: u8 = 0;
 
                                 inline for (0..vec_t.len) |i| {
+                                    var sub_i: u8 = 0;
                                     inline for (0..vec_t.len) |j| {
                                         if (i != j) {
-                                            sub[sub_i] = a[j][1..];
+                                            sub[sub_i] = @as(Vec(arr.len - 1), @as([vec_t.len]f64, a[j])[1..].*);
                                             sub_i += 1;
                                         }
                                     }
-                                    res += a[i][0] * det(sub);
+                                    res += std.math.pow(f64, -1, 2 + i) * a[i][0] * det(sub);
                                 }
                             },
                             else => @compileError("not yet implemented"),
@@ -216,6 +258,19 @@ pub fn det(a: anytype) f64 {
     }
 }
 
+test "det" {
+    const x = initMat22(2, 4, 3, 1);
+    try std.testing.expectEqual(-10, det(x));
+
+    const y = [3]@Vector(3, f64){
+        .{ 2, 1, 4 },
+        .{ -3, 0, 2 },
+        .{ 1, 0, 1 },
+    };
+
+    try std.testing.expectEqual(5, det(y));
+}
+
 pub fn getShapeValueGradient_R(cL: Vec2, mp_p: Vec2, gp_p: Vec2) [3]f64 {
     const dist: Vec2 = mp_p - gp_p;
 
@@ -231,6 +286,28 @@ pub fn getShapeValueGradient_R(cL: Vec2, mp_p: Vec2, gp_p: Vec2) [3]f64 {
 pub fn matMult22(a: Mat22, b: Mat22) Mat22 {
     const c = transpose22(b);
     return initMat22(dot2(a[0], c[0]), dot2(a[0], c[1]), dot2(a[1], c[0]), dot2(a[1], c[1]));
+}
+
+pub fn matMult(a: anytype, b: anytype) @TypeOf(a, b) {
+    const T = @TypeOf(a, b);
+    switch (@typeInfo(T)) {
+        .Array => |arr| {
+            switch (@typeInfo(arr.child)) {
+                .Vector => {
+                    var res: T = undefined;
+                    inline for (0..arr.len) |i| {
+                        res[i] = a[i] + b[i];
+                    }
+                    return res;
+                },
+                else => {
+                    //@compileLog(.{(@TypeOf(a))});
+                    @compileError("no array of vectors");
+                },
+            }
+        },
+        else => @compileError("no array of vectors"),
+    }
 }
 
 test transpose22 {
@@ -271,7 +348,7 @@ pub const Quad_Bspline_Basis = struct {
     pub fn getShapeValueGradient(Self: *Quad_Bspline_Basis, mp_p: Vec2, grid: g.Grid_2d) void {
         const p = mp_p * grid.lenght_cell_I;
 
-        if (p[0] > 2 or p[0] < 0) std.debug.print("{}\n", .{p[0]});
+        //if (p[0] > 2 or p[0] < 0) std.debug.print("{}\n", .{p[0]});
 
         const bottom_left: [2]u64 = .{ @intFromFloat(p[0]), @intFromFloat(p[1]) };
 
