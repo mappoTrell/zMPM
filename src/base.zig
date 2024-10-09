@@ -295,8 +295,11 @@ pub fn matMult(a: anytype, b: anytype) @TypeOf(a, b) {
             switch (@typeInfo(arr.child)) {
                 .Vector => {
                     var res: T = undefined;
-                    inline for (0..arr.len) |i| {
-                        res[i] = a[i] + b[i];
+                    const bT = transpose(b);
+                    inline for (&res, a) |*r_r, a_r| {
+                        inline for (bT, 0..) |b_r, i| {
+                            r_r[i] = dot(a_r, b_r);
+                        }
                     }
                     return res;
                 },
@@ -315,9 +318,9 @@ test transpose22 {
     try std.testing.expectEqual(initMat22(1, 3, 2, 4), transpose22(c));
 }
 
-test matMult22 {
+test "matMult" {
     const c = initMat22(1, 2, 3, 4);
-    try std.testing.expectEqual(initMat22(7, 10, 15, 22), matMult22(c, c));
+    try std.testing.expectEqual(initMat22(7, 10, 15, 22), matMult(c, c));
 }
 
 pub const basis = enum { linear_basis, quad_bspline_basis, cubic_bspline_basis };
