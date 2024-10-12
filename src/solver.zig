@@ -158,7 +158,7 @@ pub const Solver_2d = struct {
 
         const gp = Self.e.grid.gp;
         for (gp.items(.force)[start..end], gp.items(.mom0)[start..end], gp.items(.mom)[start..end], gp.items(.fixed)[start..end]) |force, *momentum0, *momentum, fixed| {
-            momentum.* = momentum0.* + b.scalar2(force, e.timeStep);
+            momentum.* = momentum0.* + b.scalar(force, e.timeStep);
 
             if (fixed[0]) {
                 momentum.*[0] = 0;
@@ -194,16 +194,16 @@ pub const Solver_2d = struct {
             for (bas.nP, bas.func, bas.ders) |gp_I, fV, der| {
                 //if (fV != 0) std.debug.print("{d}", .{i});
                 if (gp.items(.mass)[gp_I] > 1.0e-9) {
-                    const vI = b.scalar2(gp.items(.mom)[gp_I], 1 / gp.items(.mass)[gp_I]);
-                    vel.* += b.scalar2((gp.items(.mom)[gp_I] - gp.items(.mom0)[gp_I]), (fV / gp.items(.mass)[gp_I]));
-                    pos.* += b.scalar2((gp.items(.mom)[gp_I]), ((fV * e.timeStep) / gp.items(.mass)[gp_I]));
+                    const vI = b.scalar(gp.items(.mom)[gp_I], 1 / gp.items(.mass)[gp_I]);
+                    vel.* += b.scalar((gp.items(.mom)[gp_I] - gp.items(.mom0)[gp_I]), (fV / gp.items(.mass)[gp_I]));
+                    pos.* += b.scalar((gp.items(.mom)[gp_I]), ((fV * e.timeStep) / gp.items(.mass)[gp_I]));
                     //not switched 2nd and 3rd
-                    vel_grad = b.add22(vel_grad, b.initMat22(der[0] * vI[0], der[0] * vI[1], der[1] * vI[0], der[1] * vI[1]));
+                    vel_grad = b.addMat(vel_grad, b.initMat22(der[0] * vI[0], der[0] * vI[1], der[1] * vI[0], der[1] * vI[1]));
                 }
             }
-            strain.* = b.add22(strain.*, b.scalar22(b.add22(vel_grad, b.transpose22(vel_grad)), e.timeStep * 0.5));
-            def_grad.* = b.matMult22(def_grad.*, b.add22(Ident, b.scalar22(vel_grad, e.timeStep)));
-            const J = b.det22(def_grad.*);
+            strain.* = b.addMat(strain.*, b.scalar(b.addMat(vel_grad, b.transpose(vel_grad)), e.timeStep * 0.5));
+            def_grad.* = b.matMult(def_grad.*, b.addMat(Ident, b.scalar(vel_grad, e.timeStep)));
+            const J = b.det(def_grad.*);
             vol.* = J * vol0;
 
             stress.* = shape.mat.update_stress(strain.*);
@@ -234,11 +234,11 @@ pub const Solver_2d = struct {
                 }
 
                 gp.items(.mass)[gp_I] += mass * fV;
-                gp.items(.mom0)[gp_I] += b.scalar2(vel, fV * mass);
-                gp.items(.force)[gp_I] += b.scalar2(.{
+                gp.items(.mom0)[gp_I] += b.scalar(vel, fV * mass);
+                gp.items(.force)[gp_I] += b.scalar(.{
                     stress[0][0] * der[0] + stress[0][1] * der[1],
                     stress[1][0] * der[0] + stress[1][1] * der[1],
-                }, -vol) + b.scalar2(e.ext_acc, mass * fV);
+                }, -vol) + b.scalar(e.ext_acc, mass * fV);
 
                 gp.items(.changes)[gp_I].store(false, .release);
             }
@@ -387,7 +387,7 @@ pub const Solver_2d_2 = struct {
 
         const gp = Self.e.grid.gp;
         for (gp.items(.force)[start..end], gp.items(.mom0)[start..end], gp.items(.mom)[start..end], gp.items(.fixed)[start..end]) |force, *momentum0, *momentum, fixed| {
-            momentum.* = momentum0.* + b.scalar2(force, e.timeStep);
+            momentum.* = momentum0.* + b.scalar(force, e.timeStep);
 
             if (fixed[0]) {
                 momentum.*[0] = 0;
@@ -423,16 +423,16 @@ pub const Solver_2d_2 = struct {
             for (bas.nP, bas.func, bas.ders) |gp_I, fV, der| {
                 //if (fV != 0) std.debug.print("{d}", .{i});
                 if (gp.items(.mass)[gp_I] > 1.0e-9) {
-                    const vI = b.scalar2(gp.items(.mom)[gp_I], 1 / gp.items(.mass)[gp_I]);
-                    vel.* += b.scalar2((gp.items(.mom)[gp_I] - gp.items(.mom0)[gp_I]), (fV / gp.items(.mass)[gp_I]));
-                    pos.* += b.scalar2((gp.items(.mom)[gp_I]), ((fV * e.timeStep) / gp.items(.mass)[gp_I]));
+                    const vI = b.scalar(gp.items(.mom)[gp_I], 1 / gp.items(.mass)[gp_I]);
+                    vel.* += b.scalar((gp.items(.mom)[gp_I] - gp.items(.mom0)[gp_I]), (fV / gp.items(.mass)[gp_I]));
+                    pos.* += b.scalar((gp.items(.mom)[gp_I]), ((fV * e.timeStep) / gp.items(.mass)[gp_I]));
                     //not switched 2nd and 3rd
-                    vel_grad = b.add22(vel_grad, b.initMat22(der[0] * vI[0], der[0] * vI[1], der[1] * vI[0], der[1] * vI[1]));
+                    vel_grad = b.addMat(vel_grad, b.initMat22(der[0] * vI[0], der[0] * vI[1], der[1] * vI[0], der[1] * vI[1]));
                 }
             }
-            strain.* = b.add22(strain.*, b.scalar22(b.add22(vel_grad, b.transpose22(vel_grad)), e.timeStep * 0.5));
-            def_grad.* = b.matMult22(def_grad.*, b.add22(Ident, b.scalar22(vel_grad, e.timeStep)));
-            const J = b.det22(def_grad.*);
+            strain.* = b.addMat(strain.*, b.scalar(b.addMat(vel_grad, b.transpose(vel_grad)), e.timeStep * 0.5));
+            def_grad.* = b.matMult(def_grad.*, b.addMat(Ident, b.scalar(vel_grad, e.timeStep)));
+            const J = b.det(def_grad.*);
             vol.* = J * vol0;
 
             stress.* = shape.mat.update_stress(strain.*);
@@ -463,11 +463,11 @@ pub const Solver_2d_2 = struct {
                 }
 
                 gp.items(.mass)[gp_I] += mass * fV;
-                gp.items(.mom0)[gp_I] += b.scalar2(vel, fV * mass);
-                gp.items(.force)[gp_I] += b.scalar2(.{
+                gp.items(.mom0)[gp_I] += b.scalar(vel, fV * mass);
+                gp.items(.force)[gp_I] += b.scalar(.{
                     stress[0][0] * der[0] + stress[0][1] * der[1],
                     stress[1][0] * der[0] + stress[1][1] * der[1],
-                }, -vol) + b.scalar2(e.ext_acc, mass * fV);
+                }, -vol) + b.scalar(e.ext_acc, mass * fV);
 
                 gp.items(.changes)[gp_I].store(false, .release);
             }

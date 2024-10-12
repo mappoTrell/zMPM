@@ -43,6 +43,6 @@ pub const Elastic_Material = struct {
     }
 
     pub fn update_stress(Self: Elastic_Material, strain: Mat22) Mat22 {
-        return b.add22(b.scalar22(Ident, Self.lambda * (strain[0][0] + strain[1][1])), b.scalar22(strain, 2 * Self.mu));
+        return b.addMat(b.scalar(Ident, Self.lambda * (strain[0][0] + strain[1][1])), b.scalar(strain, 2 * Self.mu));
     }
 };

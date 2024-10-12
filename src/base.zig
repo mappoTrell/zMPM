@@ -12,7 +12,7 @@ pub fn Vec(comptime i: u8) type {
     return @Vector(i, f64);
 }
 
-pub fn dot2(a: Vec2, b: Vec2) f64 {
+pub fn dot2_old(a: Vec2, b: Vec2) f64 {
     return dot(a, b);
 }
 
@@ -26,7 +26,7 @@ pub fn dot(a: anytype, b: anytype) f64 {
     }
 }
 
-pub fn scalar2(a: Vec2, s: f64) Vec2 {
+pub fn scalar2_old(a: Vec2, s: f64) Vec2 {
     return scalar(a, s);
 }
 
@@ -68,7 +68,7 @@ test "scalar" {
     //std.debug.print("{any}\n\n", .{@TypeOf(x, z)});
 }
 
-pub fn invert2(a: Vec2) Vec2 {
+pub fn invert2_old(a: Vec2) Vec2 {
     return invert(a);
 }
 
@@ -108,7 +108,7 @@ pub fn initMat22(e1: f64, e2: f64, e3: f64, e4: f64) Mat22 {
     };
 }
 
-pub fn add22(a: Mat22, b: Mat22) Mat22 {
+pub fn addMat_old(a: Mat22, b: Mat22) Mat22 {
     return addMat(a, b);
 }
 
@@ -139,7 +139,7 @@ test "addMat" {
     try std.testing.expectEqual(initMat22(2, 2, 2, 2), addMat(z, z));
 }
 
-pub fn scalar22(a: Mat22, s: f64) Mat22 {
+pub fn scalar22_old(a: Mat22, s: f64) Mat22 {
     return scalar(a, s);
 }
 
@@ -202,14 +202,14 @@ test "transpose" {
     try std.testing.expectEqual(y_t, transpose(y));
 }
 
-pub fn transpose22(a: Mat22) Mat22 {
+pub fn transpose22_old(a: Mat22) Mat22 {
     return .{
         @shuffle(f64, a[0], a[1], @Vector(2, i32){ @as(i32, 0), ~@as(i32, 0) }),
         @shuffle(f64, a[0], a[1], @Vector(2, i32){ @as(i32, 1), ~@as(i32, 1) }),
     };
 }
 
-pub fn det22(a: Mat22) f64 {
+pub fn det22_old(a: Mat22) f64 {
     return a[0][0] * a[1][1] - a[0][1] * a[1][0];
 }
 
@@ -283,9 +283,9 @@ pub fn getShapeValueGradient_R(cL: Vec2, mp_p: Vec2, gp_p: Vec2) [3]f64 {
     return .{ sValue[0] * sValue[1], -sValue[1] * std.math.sign(dist[0]) / cL[0], -sValue[0] * std.math.sign(dist[1]) / cL[1] };
 }
 
-pub fn matMult22(a: Mat22, b: Mat22) Mat22 {
-    const c = transpose22(b);
-    return initMat22(dot2(a[0], c[0]), dot2(a[0], c[1]), dot2(a[1], c[0]), dot2(a[1], c[1]));
+pub fn matMult22_old(a: Mat22, b: Mat22) Mat22 {
+    const c = transpose(b);
+    return initMat22(dot(a[0], c[0]), dot(a[0], c[1]), dot(a[1], c[0]), dot(a[1], c[1]));
 }
 
 pub fn matMult(a: anytype, b: anytype) @TypeOf(a, b) {
@@ -313,9 +313,9 @@ pub fn matMult(a: anytype, b: anytype) @TypeOf(a, b) {
     }
 }
 
-test transpose22 {
+test transpose {
     const c = initMat22(1, 2, 3, 4);
-    try std.testing.expectEqual(initMat22(1, 3, 2, 4), transpose22(c));
+    try std.testing.expectEqual(initMat22(1, 3, 2, 4), transpose(c));
 }
 
 test "matMult" {
@@ -343,6 +343,7 @@ pub const Linear_Basis = struct {
     }
 };
 
+///doesn't work
 pub const Quad_Bspline_Basis = struct {
     nP: [9]u64 = .{0} ** 9,
     func: [9]f64 = .{0} ** 9,

@@ -3,3 +3,4 @@ zig-out
 out
 outHoud
 .zig-cache
+.vscode

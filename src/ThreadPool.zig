@@ -854,7 +854,16 @@ fn incr(x: *u32) void {
     x.* += 1;
 }
 
+fn testFn(func: anytype) void {
+    const fields = @typeInfo(@TypeOf(func)).Fn.params;
+    @compileLog(fields);
+    // for (fields) |field| {
+    //     @compileLog(field);
+    // }
+}
+
 test "callbacks" {
+    testFn(incr);
     const test_a = std.testing.allocator;
 
     var thread_safe_alloc: std.heap.ThreadSafeAllocator = .{

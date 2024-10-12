@@ -47,7 +47,7 @@ pub const Grid_2d = struct {
         };
 
         t.lenght_cell = t.lenght_grid / Vec2{ @as(f64, @floatFromInt(n_x - 1)), @as(f64, @floatFromInt(n_y - 1)) };
-        t.lenght_cell_I = b.invert2(t.lenght_cell);
+        t.lenght_cell_I = b.invert(t.lenght_cell);
 
         try t.grid_points.setCapacity(alloc, t.nodes);
 
