@@ -7,6 +7,7 @@ const mat = @import("materials.zig");
 const s = @import("solver.zig");
 const s2 = @import("solver2.zig");
 const s3 = @import("solver3.zig");
+const s4 = @import("solver4.zig");
 const ThreadPool = @import("ThreadPool.zig");
 
 ///usr/lib/linux-tools/5.15.0-119-generic/perf

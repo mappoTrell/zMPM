@@ -850,6 +850,53 @@ pub fn createTask(comptime func: anytype, args: anytype, wg: *std.Thread.WaitGro
     return &(closure.task);
 }
 
+pub fn TaskArray(t_func: type, t_args: type) type {
+    return struct {
+        fn_type: type = t_func,
+        args_type: type = t_args,
+        allocator: std.mem.Allocator,
+        arr: []Closure,
+
+        const Closure = struct {
+            arguments: t_args,
+            wait_group: *std.Thread.WaitGroup,
+            func: t_func,
+            task: Task = .{ .callback = runFn },
+
+            fn runFn(task: *Task) void {
+                const closure: *@This() = @alignCast(@fieldParentPtr("task", task));
+                @call(.auto, closure.func, closure.arguments);
+                closure.wait_group.finish();
+            }
+        };
+
+        fn createTask(Self: *@This(), comptime func: anytype, args: anytype, wg: *std.Thread.WaitGroup, pos: usize) *Task {
+            std.debug.assert(@TypeOf(func) == Self.fn_type);
+            std.debug.assert(@TypeOf(args) == Self.args_type);
+            std.debug.assert(pos < Self.arr.len);
+
+            wg.start();
+
+            Self.arr[pos] = Closure{
+                .arguments = args,
+                .func = func,
+                .wait_group = wg,
+            };
+
+            return &(Self.arr[pos].task);
+        }
+
+        fn init(Self: *@This(), size: usize, alloc: std.mem.Allocator) !void {
+            Self.arr = try alloc.alloc(Closure, size);
+            Self.allocator = alloc;
+        }
+
+        fn deinit(Self: *@This()) void {
+            Self.allocator.free(Self.arr);
+        }
+    };
+}
+
 fn incr(x: *u32) void {
     x.* += 1;
 }
