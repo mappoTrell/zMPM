@@ -13,14 +13,6 @@ const Mat22 = b.Mat22;
 const Ident: Mat22 = b.initMat22(1, 0, 0, 1);
 const zero22: Mat22 = b.initMat22(0, 0, 0, 0);
 
-const Args = struct {
-    e: *m.env,
-    shpN: usize,
-    basis: b.basis,
-    start: u64,
-    end: u64,
-};
-
 pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Allocator) !u64 {
     var t: u64 = 0;
     var it: u64 = 1;
