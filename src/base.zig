@@ -512,7 +512,7 @@ pub const Cubic_Bspline_Basis = struct {
 
 // pub const Basis = union(enum) {
 //     linear_basis: Linear_Basis,
-//     linear_basis_2: Linear_Basis_2,
+//     quad_bespline_basis: Quad_Bspline_Basis,
 
 //     pub fn getShapeValueGradient(Self: *Basis, mp_p: Vec2, grid: g.Grid_2d) void {
 //         switch (Self) {

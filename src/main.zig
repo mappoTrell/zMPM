@@ -9,7 +9,6 @@ const s2 = @import("solver2.zig");
 const s3 = @import("solver3.zig");
 const s4 = @import("solver4.zig");
 const ThreadPool = @import("ThreadPool.zig");
-
 ///usr/lib/linux-tools/5.15.0-119-generic/perf
 const time = std.time;
 const Instant = time.Instant;
@@ -182,7 +181,8 @@ fn test_2(out_dir: std.fs.Dir, alloc: std.mem.Allocator) !void {
     defer tp.deinit();
     defer tp.shutdown();
 
-    const y = try s3.run(&env1, &tp, .cubic_bspline_basis, ts_alloc);
+    //const y = try s3.run(&env1, &tp, .cubic_bspline_basis, ts_alloc);
+    const y = try s4.Solver(.cubic_bspline_basis).run(&env1, &tp, ts_alloc);
 
     std.log.info("Hä {}\n ", .{y});
 }

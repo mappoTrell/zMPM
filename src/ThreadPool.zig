@@ -850,49 +850,48 @@ pub fn createTask(comptime func: anytype, args: anytype, wg: *std.Thread.WaitGro
     return &(closure.task);
 }
 
-pub fn TaskArray(t_func: type, t_args: type) type {
+pub fn TaskArray(comptime t_func: type, comptime t_args: type) type {
     return struct {
-        fn_type: type = t_func,
-        args_type: type = t_args,
-        allocator: std.mem.Allocator,
-        arr: []Closure,
+        const Self = @This();
+        allocator: std.mem.Allocator = undefined,
+        arr: []Closure = undefined,
 
         const Closure = struct {
             arguments: t_args,
             wait_group: *std.Thread.WaitGroup,
-            func: t_func,
+            func: usize,
             task: Task = .{ .callback = runFn },
 
             fn runFn(task: *Task) void {
                 const closure: *@This() = @alignCast(@fieldParentPtr("task", task));
-                @call(.auto, closure.func, closure.arguments);
+                @call(.auto, @as(*t_func, @ptrFromInt(closure.func)), closure.arguments);
                 closure.wait_group.finish();
             }
         };
 
-        fn createTask(Self: *@This(), comptime func: anytype, args: anytype, wg: *std.Thread.WaitGroup, pos: usize) *Task {
-            std.debug.assert(@TypeOf(func) == Self.fn_type);
-            std.debug.assert(@TypeOf(args) == Self.args_type);
-            std.debug.assert(pos < Self.arr.len);
+        pub fn createTask(self: *Self, comptime func: anytype, args: anytype, wg: *std.Thread.WaitGroup, pos: usize) *Task {
+            std.debug.assert(@TypeOf(func) == t_func);
+            //std.debug.assert(@TypeOf(args) == t_args);
+            //std.debug.assert(pos < self.arr.len);
 
             wg.start();
 
-            Self.arr[pos] = Closure{
+            self.arr[pos] = Closure{
                 .arguments = args,
-                .func = func,
+                .func = @intFromPtr(&func),
                 .wait_group = wg,
             };
 
-            return &(Self.arr[pos].task);
+            return &(self.arr[pos].task);
         }
 
-        fn init(Self: *@This(), size: usize, alloc: std.mem.Allocator) !void {
-            Self.arr = try alloc.alloc(Closure, size);
-            Self.allocator = alloc;
+        pub fn init(self: *Self, size: usize, alloc: std.mem.Allocator) !void {
+            self.arr = try alloc.alloc(Closure, size);
+            self.allocator = alloc;
         }
 
-        fn deinit(Self: *@This()) void {
-            Self.allocator.free(Self.arr);
+        pub fn deinit(self: *Self) void {
+            self.allocator.free(self.arr);
         }
     };
 }

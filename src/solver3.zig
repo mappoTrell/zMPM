@@ -95,6 +95,7 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
         //updateGrid(Self, &wG, 0, e.grid.gp.len);
 
         // //grid to points
+        var y: u32 = 0;
         for (e.shapes.items, 0..) |shape, shpN| {
             i = 0;
             incr = shape.len / c_count;
@@ -102,8 +103,10 @@ pub fn run(e: *m.env, tp: *ThreadPool, comptime base: b.basis, alloc: std.mem.Al
             while (i < shape.len) : (i += incr) {
                 const end = if (i + incr <= shape.len) i + incr else shape.len;
                 tp.schedule(ThreadPool.Batch.from(try ThreadPool.createTask(gridToPoints, .{ e, shpN, base, i, end }, &wG, alloc)));
+                y += 1;
             }
         }
+        std.log.debug("{d}", .{y});
 
         wG.wait();
         wG.reset();
