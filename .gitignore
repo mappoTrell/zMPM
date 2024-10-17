@@ -4,4 +4,4 @@ out
 outHoud
 /.zig-cache
 .vscode
-**/*.toml
+.SpaceVim.d/

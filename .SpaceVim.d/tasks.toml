@@ -1,3 +1,0 @@
-[zigBuildRunRelease]
-    command = 'zig build run'
-    args = ['--release=fast']
