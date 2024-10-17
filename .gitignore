@@ -4,4 +4,4 @@ out
 outHoud
 .zig-cache
 .vscode
-.SpaceVim.d/
+/.SpaceVim*
