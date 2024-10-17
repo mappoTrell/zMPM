@@ -2,6 +2,6 @@ zig-cache
 zig-out
 out
 outHoud
-.zig-cache
+/.zig-cache
 .vscode
-/.SpaceVim*
+**/*.toml
