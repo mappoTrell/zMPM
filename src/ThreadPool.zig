@@ -850,14 +850,16 @@ pub fn createTask(comptime func: anytype, args: anytype, wg: *std.Thread.WaitGro
     return &(closure.task);
 }
 
-pub fn TaskArray(comptime t_func: type, comptime t_args: type) type {
+pub fn TaskArray(
+    comptime t_func: type,
+) type {
     return struct {
         const Self = @This();
         allocator: std.mem.Allocator = undefined,
         arr: []Closure = undefined,
 
         const Closure = struct {
-            arguments: t_args,
+            arguments: std.meta.ArgsTuple(t_func),
             wait_group: *std.Thread.WaitGroup,
             func: usize,
             task: Task = .{ .callback = runFn },

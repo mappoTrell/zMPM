@@ -15,14 +15,7 @@ const zero22: Mat22 = b.initMat22(0, 0, 0, 0);
 
 pub fn Solver(comptime s_base: b.basis) type {
     return struct {
-        const Args = std.meta.Tuple(&.{
-            *m.env,
-            usize,
-            u64,
-            u64,
-        });
-
-        const Task_Arr = ThreadPool.TaskArray(@TypeOf(gridToPoints), Args);
+        const Task_Arr = ThreadPool.TaskArray(@TypeOf(gridToPoints));
 
         pub fn run(e: *m.env, tp: *ThreadPool, alloc: std.mem.Allocator) !u64 {
             var t: u64 = 0;
