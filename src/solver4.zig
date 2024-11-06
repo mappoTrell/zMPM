@@ -16,6 +16,7 @@ const zero22: Mat22 = b.initMat22(0, 0, 0, 0);
 pub fn Solver(comptime s_base: b.basis) type {
     return struct {
         const Task_Arr = ThreadPool.TaskArray(@TypeOf(gridToPoints));
+        const base = s_base;
 
         pub fn run(e: *m.env, tp: *ThreadPool, alloc: std.mem.Allocator) !u64 {
             var t: u64 = 0;
@@ -39,20 +40,22 @@ pub fn Solver(comptime s_base: b.basis) type {
             while (@as(f64, @floatFromInt(t)) <= e.timeEnd / e.timeStep) : (t += 1) {
                 if (t % 250 == 0 and enabled == true) {
                     my_log.debug("Frame {d}", .{it});
-                    const fP = try std.fmt.allocPrint(e.alloc, "{d}.csv", .{it});
+                    const fP = try std.fmt.allocPrint(e.alloc, "{d}.obj", .{it});
                     defer e.alloc.free(fP);
                     const file = try e.out_Folder.createFile(fP, .{ .read = true });
                     defer file.close();
 
                     var buf = std.io.bufferedWriter(file.writer());
                     var w = buf.writer();
-
+                    try w.print("g\n", .{});
                     for (e.shapes.items, 0..) |shape, sN| {
                         const mps = shape.material_points;
                         for (mps.items(.pos), mps.items(.stress)) |pos, stress| {
                             const vm: f64 = @sqrt(stress[0][0] * stress[0][0] + stress[1][1] * stress[1][1] - stress[0][0] * stress[1][1] + 3 * (stress[0][1] * stress[1][0]));
                             //const vm1: f64 = std.math.sqrt2(3);
-                            try w.print("{d},{d},{d},{d},{d},0\n", .{ pos[0], pos[1], 0, vm, sN + 1 });
+                            _ = vm;
+                            _ = sN;
+                            try w.print("v {d} {d} {d} \n", .{ pos[0], pos[1], 0 });
                         }
                     }
 
@@ -193,7 +196,7 @@ pub fn Solver(comptime s_base: b.basis) type {
                 .cubic_bspline_basis => b.Cubic_Bspline_Basis{},
             };
 
-            const shape = e.shapes.items[shpN];
+            const shape = &(e.shapes.items[shpN]);
 
             const mps = shape.mp_slice;
 

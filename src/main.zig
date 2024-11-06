@@ -136,8 +136,11 @@ fn test_2(out_dir: std.fs.Dir, alloc: std.mem.Allocator) !void {
     var g1 = try grid.Grid_2d.init(2, 2, 300, 300, alloc);
     defer g1.deinit();
 
-    const mat1 = mat.Elastic_Material.init(1000, 0.1, 1000);
-    const mat2 = mat.Elastic_Material.init(1000, 0.1, 1000);
+    var mat1: mat.Material = undefined;
+    var mat2: mat.Material = undefined;
+
+    mat1 = mat.Material{ .elastic_material = mat.Elastic_Material.init(1000, 0.1, 1000) };
+    mat2 = mat.Material{ .elastic_material = mat.Elastic_Material.init(1000, 0.1, 1000) };
 
     const offset = g1.lenght_cell[0] / 3;
 

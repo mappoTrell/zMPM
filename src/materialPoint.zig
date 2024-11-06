@@ -35,13 +35,13 @@ pub const Shape_2d_Classic = struct {
 
     mp_slice: std.MultiArrayList(MP_2d_Classic).Slice,
     len: u64,
-    mat: m.Elastic_Material,
+    mat: m.Material,
 
     pub fn deinit(Self: *Shape_2d_Classic) void {
         Self.material_points.deinit(Self.alloc);
     }
 
-    pub fn createCircle(center: Vec2, r: f64, offset: f64, mat: m.Elastic_Material, vel0: Vec2, alloc: std.mem.Allocator) !Shape_2d_Classic {
+    pub fn createCircle(center: Vec2, r: f64, offset: f64, mat: m.Material, vel0: Vec2, alloc: std.mem.Allocator) !Shape_2d_Classic {
         var x: f64 = -r;
 
         var temp = std.MultiArrayList(MP_2d_Classic){};
@@ -59,7 +59,7 @@ pub const Shape_2d_Classic = struct {
                     p.vol = offset * offset;
                     p.vel = vel0;
                     p.vol0 = p.vol;
-                    p.mass = p.vol * mat.density;
+                    p.mass = p.vol * mat.get_density();
                     try temp.append(alloc, p);
 
                     i += 1;
